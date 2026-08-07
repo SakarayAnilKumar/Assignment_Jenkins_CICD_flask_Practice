@@ -59,6 +59,19 @@ def delete_student(student_id):
     mongo.db.students.delete_one({"_id": ObjectId(student_id)})
     return redirect(url_for('index'))
 
+@app.route('/health')
+def check_health():
+    try:
+        # Attempt to retrieve a document from the students collection
+        if mongo.db.students.find_one():
+            return {"status": "healthy", "code": 200}
+        else:
+            return {"status": "unhealthy", "code": 500}
+    except Exception as e:
+        print(f"Health check failed: {e}")
+        return {"status": "unhealthy", "code": 500}
+
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=True, port=5000)
 
