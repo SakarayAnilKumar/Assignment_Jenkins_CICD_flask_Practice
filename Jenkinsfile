@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+environment {
+        // Fetch secret from Jenkins credentials store using the ID 'MONGO_URI'
+        MONGO_URI = credentials('MONGO_URI') 
+    }
+
     stages {
         stage('Checkout') {
             steps {
