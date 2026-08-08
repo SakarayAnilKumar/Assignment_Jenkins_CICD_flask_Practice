@@ -42,11 +42,26 @@ environment {
         always {
             echo 'Pipeline execution completed'
         }
-        success {
-            echo 'Pipeline succeeded!'
+    success {
+        echo 'Pipeline executed successfully'   
+            emailext (
+                subject: "SUCCESSFUL: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]",
+                body: """<p>SUCCESSFUL: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]</p>
+                         <p>Check build details at: <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>""",
+                to: 'anilirctc26@gmail.com',
+                mimeType: 'text/html'
+            )
         }
+
         failure {
-            echo 'Pipeline failed!'
+            echo 'Pipeline execution failed'
+            emailext (
+                subject: "FAILED: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]",
+                body: """<p>FAILED: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]</p>
+                         <p>Check console output at: <a href='${env.BUILD_URL}console'>${env.BUILD_URL}console</a></p>""",
+                to: 'anilirctc26@gmail.com',
+                mimeType: 'text/html'
+            )
         }
     }
 }
