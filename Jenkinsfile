@@ -17,23 +17,15 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            post {
-                failure {
-                    script { env.FAILED_STAGE = 'Checkout' }
-                }
-            }
             steps {
+                script { env.FAILED_STAGE = 'Checkout' }
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
-            post {
-                failure {
-                    script { env.FAILED_STAGE = 'Install Dependencies' }
-                }
-            }
             steps {
+                script { env.FAILED_STAGE = 'Install Dependencies' }
                 echo 'Installing dependencies...'
                 sh 'python -m venv venv'
                 sh 'source venv/Scripts/activate'
@@ -43,25 +35,17 @@ pipeline {
         }
 
         stage('Test') {
-            post {
-                failure {
-                    script { env.FAILED_STAGE = 'Test' }
-                }
-            }
             steps {
+                script { env.FAILED_STAGE = 'Test' }
                 echo 'Running tests...'
                 sh 'pytest'
             }
         }
 
         stage('Build Docker Image') {
-            post {
-                failure {
-                    script { env.FAILED_STAGE = 'Build Docker Image' }
-                }
-            }
             steps {
                 script {
+                    env.FAILED_STAGE = 'Build Docker Image'
                     echo "Building ${IMAGE_NAME}:${IMAGE_TAG}..."
                     sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
                     sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}"
@@ -71,12 +55,8 @@ pipeline {
         }
 
         stage('Authenticate & Push to ECR') {
-            post {
-                failure {
-                    script { env.FAILED_STAGE = 'Authenticate & Push to ECR' }
-                }
-            }
             steps {
+                script { env.FAILED_STAGE = 'Authenticate & Push to ECR' }
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'ECR-Access-ID'
@@ -94,12 +74,8 @@ pipeline {
         }
 
         stage('Deploy to EC2 Instance') {
-            post {
-                failure {
-                    script { env.FAILED_STAGE = 'Deploy to EC2 Instance' }
-                }
-            }
             steps {
+                script { env.FAILED_STAGE = 'Deploy to EC2 Instance' }
                 withCredentials([
                     file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH'),
                     aws(credentialsId: 'ECR-Access-ID', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
@@ -113,12 +89,8 @@ pipeline {
         }
 
         stage('Validate Application Health') {
-            post {
-                failure {
-                    script { env.FAILED_STAGE = 'Validate Application Health' }
-                }
-            }
             steps {
+                script { env.FAILED_STAGE = 'Validate Application Health' }
                 powershell '''
                     Start-Sleep -Seconds 5
                     $url = "http://${env:EC2_HOST}:5000/health"
