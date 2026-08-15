@@ -49,36 +49,35 @@ environment {
             }
         }
         stage('Authenticate & Push to ECR') {
-                    steps {
-                        withCredentials([[
-                            $class: 'AmazonWebServicesCredentialsBinding',
-                            credentialsId: 'ECR-Access-ID'
-                        ]]) {
-                            script {
-                                echo "Authenticating to ECR..."
-                                sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}"
-                                
-                                echo "Pushing image to ECR..."
-                                sh "docker push ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}"
-                                sh "docker push ${ECR_URL}/${IMAGE_NAME}:latest"
-                            }
-                        }
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'ECR-Access-ID'
+                ]]) {
+                    script {
+                        echo "Authenticating to ECR..."
+                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}"
+                        
+                        echo "Pushing image to ECR..."
+                        sh "docker push ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh "docker push ${ECR_URL}/${IMAGE_NAME}:latest"
                     }
                 }
-
-    stage('Deploy to EC2 Instance') {
-        steps {
-            withCredentials([
-                file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH'),
-                aws(credentialsId: 'ECR-Access-ID', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
-                string(credentialsId: 'MONGO_URI', variable: 'MONGO_URI')
-            ]) {
-            bat '''
-                "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'export AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID% && export AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY% && export AWS_DEFAULT_REGION=%AWS_REGION% && ./deploy.sh %IMAGE_TAG% \\"%MONGO_URI%\\"' "
-            '''
             }
         }
-    }
+
+        stage('Deploy to EC2 Instance') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH'),
+                    aws(credentialsId: 'ECR-Access-ID', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    bat '''
+                        "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'uname -a && pwd && whoami && ls -la && find ~ -name deploy.sh'"
+                    '''
+                }
+            }
+        }
 }
 
     post {
