@@ -12,16 +12,28 @@ environment {
 
         EC2_HOST       = '13.223.96.128' // or public IP
         EC2_USER       = 'ec2-user'
+        FAILED_STAGE   = 'Unknown Stage'
     }
 
     stages {
         stage('Checkout') {
+
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Checkout Source' }
+                }
+            }
             steps {
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Install Dependencies' }
+                }
+            }
             steps {
                 echo 'Installing dependencies...'
                 sh 'python -m venv venv'
@@ -32,6 +44,11 @@ environment {
         }
 
         stage('Test') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Test' }
+                }
+            }
             steps {
                 echo 'Running tests...'
                 sh 'pytest'
@@ -39,6 +56,11 @@ environment {
         }
 
         stage('Build Docker Image') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Build Docker Image' }
+                }
+            }
             steps {
                 script {
                     echo "Building ${IMAGE_NAME}:${IMAGE_TAG}..."
@@ -49,6 +71,11 @@ environment {
             }
         }
         stage('Authenticate & Push to ECR') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Authenticate & Push to ECR' }
+                }
+            }
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -67,6 +94,11 @@ environment {
         }
 
         stage('Deploy to EC2 Instance') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Deploy to EC2 Instance' }
+                }
+            }
             steps {
                 withCredentials([
                     file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH'),
@@ -80,6 +112,11 @@ environment {
             }
         }
         stage('Validate Application Health') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Validate Application Health' }
+                }
+            }
             steps {
                 powershell '''
                     Start-Sleep -Seconds 5
@@ -145,7 +182,7 @@ post {
                     <hr/>
                     <p><b>Failure Details:</b></p>
                     <ul>
-                        <li><b>Failed Stage:</b> <span style='color:red;'>${env.STAGE_NAME ? env.STAGE_NAME : 'Unknown Stage'}</span></li>
+                        <li><b>Failed Stage:</b> <span style='color:red;'>${env.FAILED_STAGE ? env.FAILED_STAGE : 'Unknown Stage'}</span></li>
                         <li><b>Commit SHA:</b> ${env.GIT_COMMIT ? env.GIT_COMMIT : 'N/A'}</li>
                         <li><b>Image Tag:</b> ${env.ECR_URL}/${env.IMAGE_NAME}:${env.IMAGE_TAG}</li>
                     </ul>
