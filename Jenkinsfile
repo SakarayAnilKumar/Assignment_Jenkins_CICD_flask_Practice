@@ -109,7 +109,6 @@ environment {
             }
         }
 }
-}
 
     post {
         always {
