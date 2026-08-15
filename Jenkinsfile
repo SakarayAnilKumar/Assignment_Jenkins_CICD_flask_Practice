@@ -110,16 +110,26 @@ environment {
         }
 }
 
-    post {
+post {
         always {
             echo 'Pipeline execution completed'
         }
-    success {
-        echo 'Pipeline executed successfully'   
+        success {
+            echo 'Pipeline executed successfully'   
             emailext (
                 subject: "SUCCESSFUL: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]",
-                body: """<p>SUCCESSFUL: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]</p>
-                         <p>Check build details at: <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>""",
+                body: """
+                    <h2>Build Status: SUCCESS</h2>
+                    <p>Job <b>${env.JOB_NAME}</b> [Build #${env.BUILD_NUMBER}] completed successfully.</p>
+                    <hr/>
+                    <p><b>Deployment Details:</b></p>
+                    <ul>
+                        <li><b>Commit SHA:</b> ${env.GIT_COMMIT ? env.GIT_COMMIT : 'N/A'}</li>
+                        <li><b>Image Tag:</b> ${env.IMAGE_TAG}</li>
+                    </ul>
+                    <hr/>
+                    <p>Check build details at: <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>
+                """,
                 to: 'anilirctc26@gmail.com',
                 mimeType: 'text/html'
             )
@@ -129,8 +139,19 @@ environment {
             echo 'Pipeline execution failed'
             emailext (
                 subject: "FAILED: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]",
-                body: """<p>FAILED: Job '${env.JOB_NAME}' [Build #${env.BUILD_NUMBER}]</p>
-                         <p>Check console output at: <a href='${env.BUILD_URL}console'>${env.BUILD_URL}console</a></p>""",
+                body: """
+                    <h2>Build Status: FAILED</h2>
+                    <p>Job <b>${env.JOB_NAME}</b> [Build #${env.BUILD_NUMBER}] failed to complete.</p>
+                    <hr/>
+                    <p><b>Failure Details:</b></p>
+                    <ul>
+                        <li><b>Failed Stage:</b> <span style='color:red;'>${env.STAGE_NAME ? env.STAGE_NAME : 'Unknown Stage'}</span></li>
+                        <li><b>Commit SHA:</b> ${env.GIT_COMMIT ? env.GIT_COMMIT : 'N/A'}</li>
+                        <li><b>Image Tag:</b> ${env.IMAGE_TAG}</li>
+                    </ul>
+                    <hr/>
+                    <p>Check console output at: <a href='${env.BUILD_URL}console'>${env.BUILD_URL}console</a></p>
+                """,
                 to: 'anilirctc26@gmail.com',
                 mimeType: 'text/html'
             )
