@@ -69,16 +69,20 @@ environment {
         stage('Deploy to EC2 via SSH') {
             steps {
                 sshagent(['ec2-ssh-key']) {
-                    // Force execution via Git Bash on Windows
-                    sh script: '''
-                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
-                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
-                            docker stop ${IMAGE_NAME} || true
-                            docker rm ${IMAGE_NAME} || true
-                            docker pull ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}
-                            docker run -d --name ${IMAGE_NAME} -p 80:80 ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}
-                        "
-                    ''', executable: 'C:\\Program Files\\Git\\bin\\bash.exe'
+                    script {
+                        def s = sh(
+                            script: '''
+                                ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "
+                                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
+                                    docker stop ${IMAGE_NAME} || trueIMAGE_NAME
+                                    docker rm ${IMAGE_NAME} || true
+                                    docker pull ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}
+                                    docker run -d --name ${IMAGE_NAME} -p 80:80 ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}
+                                "
+                            ''',
+                            returnStatus: true
+                        )
+                    }
                 }
             }
         }
