@@ -125,7 +125,7 @@ post {
                     <p><b>Deployment Details:</b></p>
                     <ul>
                         <li><b>Commit SHA:</b> ${env.GIT_COMMIT ? env.GIT_COMMIT : 'N/A'}</li>
-                        <li><b>Image Tag:</b> ${env.IMAGE_TAG}</li>
+                        <li><b>Image Tag:</b> ${env.ECR_URL}/${env.IMAGE_NAME}:${env.IMAGE_TAG}</li>
                     </ul>
                     <hr/>
                     <p>Check build details at: <a href='${env.BUILD_URL}'>${env.BUILD_URL}</a></p>
@@ -147,7 +147,7 @@ post {
                     <ul>
                         <li><b>Failed Stage:</b> <span style='color:red;'>${env.STAGE_NAME ? env.STAGE_NAME : 'Unknown Stage'}</span></li>
                         <li><b>Commit SHA:</b> ${env.GIT_COMMIT ? env.GIT_COMMIT : 'N/A'}</li>
-                        <li><b>Image Tag:</b> ${env.IMAGE_TAG}</li>
+                        <li><b>Image Tag:</b> ${env.ECR_URL}/${env.IMAGE_NAME}:${env.IMAGE_TAG}</li>
                     </ul>
                     <hr/>
                     <p>Check console output at: <a href='${env.BUILD_URL}console'>${env.BUILD_URL}console</a></p>
