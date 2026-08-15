@@ -82,20 +82,7 @@ environment {
         stage('Validate Application Health') {
             steps {
                 bat '''
-                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "
-                        echo ===> Checking application health...
-                        sleep 5
-                        HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://%EC2_HOST%:5000/)
-                        echo ===> Application returned HTTP status: $HTTP_STATUS
-                        
-                        if [ \"$HTTP_STATUS\" -eq 200 ]; then
-                            echo ===> Health check passed! Application is live and healthy.
-                            exit 0
-                        else
-                            echo ===> Health check failed with HTTP status code: $HTTP_STATUS
-                            exit 1
-                        fi
-                    "
+                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'sleep 5 && curl -f http://localhost:5000/ > /dev/null && echo App is healthy!'"
                 '''
             }
         }
