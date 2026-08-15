@@ -204,14 +204,11 @@ The `post` execution block monitors the outcome of the entire pipeline lifecycle
 
 #### Pipeline Image
 
-<img width="1896" height="906" alt="image" src="https://github.com/user-attachments/assets/11e74a2c-a113-4ed1-881d-4888fabcac47" />
-
+<img width="1892" height="902" alt="image" src="https://github.com/user-attachments/assets/3a9883cb-e812-4235-9387-4fa5fa0858ca" />
 
 #### Email Confirmation
-![Failed Email Confirmation](path/to/failed-email-image.png)
 
-#### Application Testing
-![Application Testing Failure](path/to/application-testing-failure-image.png)
+<img width="1542" height="667" alt="image" src="https://github.com/user-attachments/assets/cc3eabe2-e588-4723-8666-451babb4f18e" />
 
 
 
