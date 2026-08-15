@@ -82,7 +82,19 @@ environment {
         stage('Validate Application Health') {
             steps {
                 bat '''
-                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "sleep 5 && echo ===> Checking http://%EC2_HOST%:5000/health && curl -s -f http://%EC2_HOST%:5000/health && echo. && echo ===> Health Check Passed! HTTP 200 OK"
+                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "
+                        echo ===> Waiting 5 seconds...
+                        sleep 5
+                        HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://%EC2_HOST%:5000/health)
+                        
+                        if [ \"$HTTP_STATUS\" -eq 200 ]; then
+                            echo ===> SUCCESS
+                            exit 0
+                        else
+                            echo ===> FAILED
+                            exit 1
+                        fi
+                    "
                 '''
             }
         }
