@@ -4,6 +4,11 @@ pipeline {
 environment {
         // Fetch secret from Jenkins credentials store using the ID 'MONGO_URI'
         MONGO_URI = credentials('MONGO_URI') 
+        AWS_ACCOUNT_ID = '316412036553'
+        AWS_REGION     = 'us-east-1'
+        IMAGE_NAME     = 'student-registration'
+        IMAGE_TAG      = "${env.BUILD_NUMBER}"
+        ECR_URL        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
     }
 
     stages {
@@ -32,10 +37,31 @@ environment {
 
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
-                sh 'docker build -t student-registration:latest .'
+                script {
+                    echo "Building ${IMAGE_NAME}:${IMAGE_TAG}..."
+                    sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                    sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}"
+                    sh "docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_URL}/${IMAGE_NAME}:latest"
+                }
             }
         }
+        stage('Authenticate & Push to ECR') {
+                    steps {
+                        withCredentials([[
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            credentialsId: 'ECR-Access-ID'
+                        ]]) {
+                            script {
+                                echo "Authenticating to ECR..."
+                                sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}"
+                                
+                                echo "Pushing image to ECR..."
+                                sh "docker push ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}"
+                                sh "docker push ${ECR_URL}/${IMAGE_NAME}:latest"
+                            }
+                        }
+                    }
+                }
     }
 
     post {
