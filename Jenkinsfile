@@ -10,7 +10,7 @@ environment {
         IMAGE_TAG      = "${env.BUILD_NUMBER}"
         ECR_URL        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-        EC2_HOST       = '98.86.159.164' // or public IP
+        EC2_HOST       = '13.223.96.128' // or public IP
         EC2_USER       = 'ec2-user'
     }
 
