@@ -66,17 +66,19 @@ environment {
                     }
                 }
 
-        stage('Deploy to EC2 Instance') {
-                    steps {
-                        // SSH Key setup in Jenkins as a Secret File credential
-                        withCredentials([file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH')]) {
-                            bat '''
-                                "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin %ECR_URL% && docker stop %IMAGE_NAME% || true && docker rm %IMAGE_NAME% || true && docker pull %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG% && docker run -d --name %IMAGE_NAME% --restart unless-stopped -p 80:80 %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG%'"
-                            '''
-                        }
-                    }
+    stage('Deploy to EC2 Instance') {
+        steps {
+            withCredentials([
+                file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH'),
+                usernamePassword(credentialsId: 'aws-credentials-id', passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')
+            ]) {
+                bat '''
+                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'export AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID% && export AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY% && aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin %ECR_URL% && docker stop %IMAGE_NAME% || true && docker rm %IMAGE_NAME% || true && docker pull %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG% && docker run -d --name %IMAGE_NAME% --restart unless-stopped -p 80:80 %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG%'"
+                '''
             }
+        }
     }
+}
 
     post {
         always {
