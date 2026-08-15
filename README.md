@@ -57,32 +57,72 @@ The primary objective of this pipeline is to automate the build, containerizatio
 
 ---
 
-## 3. IAM Configuration: User, Role & Access Keys Setup
+## 3. AWS Setup: ECR Repository, EC2 Instance, IAM & Docker Configuration
 
-To allow Jenkins and the EC2 instance to interact with AWS ECR, configure the following IAM credentials in the AWS Management Console:
+To allow Jenkins and the target EC2 instance to store, retrieve, and execute Docker container images, configure the AWS ECR Repository, EC2 Instance, Docker environment, and IAM credentials in the AWS Management Console:
 
-### Step 3.1: Create IAM User for Jenkins (`ECR-Access-ID`)
-1. Open the **AWS IAM Console** and navigate to **Users** > **Create user**.
-2. Set the username (e.g., `jenkins-ecr-builder`).
-3. Under **Permissions options**, select **Attach policies directly**.
-4. Search for and attach the **`AmazonEC2ContainerRegistryPowerUser`** managed policy (provides permission to authenticate, build, pull, and push images to ECR).
-5. Complete user creation.
+### Step 3.1: Create AWS ECR Repository
+1. Open the **AWS Management Console** and search for **Elastic Container Registry (ECR)**.
+2. Under **Private registry**, select **Repositories** and click **Create repository**.
+3. Set the repository visibility to **Private**.
+4. Enter the **Repository name** (e.g., `student-registration`).
+5. Under **Tag immutability**, select **Mutable** (allows overwriting build tags) or **Immutable** depending on your deployment strategy.
+6. Enable **Scan on push** under **Image scan configuration** for vulnerability scanning.
+7. Click **Create repository** and copy the generated ECR Repository URI (e.g., `316412036553.dkr.ecr.us-east-1.amazonaws.com/student-registration`).
 
-### Step 3.2: Generate AWS Access Keys
-1. Select the newly created user (`jenkins-ecr-builder`).
-2. Navigate to the **Security credentials** tab.
-3. Scroll down to **Access keys** and click **Create access key**.
-4. Select **Command Line Interface (CLI)** as the use case, acknowledge the recommendation, and click **Next**.
-5. Copy or download the **Access Key ID** and **Secret Access Key**.
-6. In Jenkins, store these credentials under **Manage Jenkins > Credentials** as an AWS Credential type named **`ECR-Access-ID`**.
+<img width="1916" height="290" alt="image" src="https://github.com/user-attachments/assets/81f4fbe3-46b0-4034-b9c3-f5e7cbe48030" />
 
-### Step 3.3: (Optional) Create EC2 IAM Role for Instance ECR Access
+### Step 3.2: Launch AWS EC2 Instance & Configure Security Group
+1. Open the **AWS EC2 Console** and click **Launch Instance**.
+2. **Name:** Enter `Student-App-Server`.
+3. **AMI:** Choose **Amazon Linux 2023** or **Ubuntu 22.04 LTS**.
+4. **Instance Type:** Select `t2.micro` (or higher depending on workspace workload).
+5. **Key Pair:** Select an existing `.pem` key pair or create a new one (e.g., `ec2-ssh-key.pem`) and download it for Jenkins SSH authentication.
+6. **Network Settings (Security Group):**
+   * Create a new Security Group named `student-app-sg`.
+   * Add Inbound Rule 1: **SSH (Port 22)** — Source: `My IP` or `Jenkins Master IP` for secure remote pipeline orchestration.
+   * Add Inbound Rule 2: **Custom TCP (Port 5000)** — Source: `Anywhere (0.0.0.0/0)` or `Jenkins Master IP` to allow health check validation and application access.
+7. Click **Launch Instance** and note the assigned Public IP address (e.g., `13.223.96.128`).
+
+<img width="1907" height="407" alt="image" src="https://github.com/user-attachments/assets/14d3dc1e-5ffc-4e16-92e0-5700f4712e34" />
+
+### Step 3.3: Install Docker & Configure Prerequisites on EC2
+Connect to your EC2 instance via SSH and run the following commands to install Docker, start the service, and set up user permissions:
+
+```bash
+# Update local package manager
+sudo yum update -y   # Use 'sudo apt update -y' for Ubuntu
+
+# Install Docker engine and AWS CLI
+sudo yum install -y docker awscli   # Use 'sudo apt install -y docker.io awscli' for Ubuntu
+
+# Start Docker daemon and enable it on boot
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add system user (ec2-user / ubuntu) to the docker group to run containers without sudo
+sudo usermod -aG docker ec2-user
+
+# Apply updated group permissions immediately
+newgrp docker
+
+# Verify Docker daemon functionality
+docker --version
+docker ps
+```
+
+<img width="1681" height="1016" alt="image" src="https://github.com/user-attachments/assets/c4e68312-c307-44c4-983e-a6d196977f40" />
+
+### Step 3.4: Create EC2 IAM Role for Instance ECR Access
 If you prefer EC2 instance-level authentication over passing credentials over SSH:
 1. Navigate to **IAM** > **Roles** > **Create role**.
 2. Select **AWS service** as trusted entity type and **EC2** as the use case.
 3. Attach the **`AmazonEC2ContainerRegistryReadOnly`** policy.
 4. Name the role (e.g., `EC2-ECR-ReadOnly-Role`) and create it.
 5. In the **EC2 Console**, select your target instance (`13.223.96.128`) > **Actions** > **Security** > **Modify IAM role**, and attach `EC2-ECR-ReadOnly-Role`.
+
+<img width="1882" height="881" alt="image" src="https://github.com/user-attachments/assets/0c45712c-4565-4d18-bbcd-260d5523b491" />
+
 
 ---
 
@@ -94,6 +134,11 @@ The pipeline relies on four specific Jenkins Credentials. Configure these under 
 2. **`ECR-Access-ID`** *(AWS Credentials / Access Key Pair)*: AWS Access Key and Secret Key authorized to generate ECR authentication tokens via `aws ecr get-login-password`.
 3. **`MONGO_URI`** *(Secret text)*: Full database connection string including query parameters (e.g., `mongodb+srv://<user>:<password>@cluster.mongodb.net/students_db?retryWrites=true&w=majority`).
 4. **`anilirctc26-email`** *(SMTP / Mailer)*: Configuration for the `emailext` plugin to deliver HTML notifications.
+
+<img width="1676" height="522" alt="image" src="https://github.com/user-attachments/assets/ed3a688f-0c4f-46ee-a20c-decc401bc795" />
+
+<img width="1777" height="632" alt="image" src="https://github.com/user-attachments/assets/35b90c6e-6c07-4c05-b343-e052e835e4a7" />
+
 
 ---
 
@@ -140,20 +185,27 @@ The `post` execution block monitors the outcome of the entire pipeline lifecycle
 ### Successful Pipeline
 
 #### Pipeline Image
-![Successful Pipeline](path/to/successful-pipeline-image.png)
+
+<img width="1902" height="882" alt="image" src="https://github.com/user-attachments/assets/5424fb11-414d-46e2-8d4e-0b8eca1d50b8" />
 
 #### Email Confirmation
-![Successful Email Confirmation](path/to/successful-email-image.png)
+
+<img width="1507" height="665" alt="image" src="https://github.com/user-attachments/assets/0fbc71d3-5f88-46a2-8372-d31774a8ebb6" />
+
 
 #### Application Testing
-![Application Testing Success](path/to/application-testing-success-image.png)
+
+<img width="1832" height="687" alt="image" src="https://github.com/user-attachments/assets/5c335d57-9e17-4798-81f8-6635be5364bb" />
+
 
 ---
 
 ### Failed Pipeline
 
 #### Pipeline Image
-![Failed Pipeline](path/to/failed-pipeline-image.png)
+
+<img width="1896" height="906" alt="image" src="https://github.com/user-attachments/assets/11e74a2c-a113-4ed1-881d-4888fabcac47" />
+
 
 #### Email Confirmation
 ![Failed Email Confirmation](path/to/failed-email-image.png)
