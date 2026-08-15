@@ -74,28 +74,7 @@ environment {
                     string(credentialsId: 'MONGO_URI', variable: 'MONGO_URI')
                 ]) {
                     bat '''
-                        "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% '
-                            export AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID%
-                            export AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY%
-                            export AWS_DEFAULT_REGION=%AWS_REGION%
-
-                            echo ===> Logging in to ECR...
-                            aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_URL%
-
-                            echo ===> Cleaning up old container...
-                            docker stop %IMAGE_NAME% || true
-                            docker rm %IMAGE_NAME% || true
-
-                            echo ===> Pulling latest image...
-                            docker pull %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG%
-
-                            echo ===> Starting new container...
-                            docker run -d --name %IMAGE_NAME% --restart unless-stopped -p 5000:5000 -e MONGO_URI=\"%MONGO_URI%\" %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG%
-
-                            echo ===> Verifying container status...
-                            sleep 3
-                            docker ps | grep %IMAGE_NAME%
-                        '"
+                        "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'export AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID% && export AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY% && export AWS_DEFAULT_REGION=%AWS_REGION% && aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_URL% && docker stop %IMAGE_NAME% || true && docker rm %IMAGE_NAME% || true && docker pull %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG% && docker run -d --name %IMAGE_NAME% --restart unless-stopped -p 5000:5000 -e MONGO_URI=\\"%MONGO_URI%\\" %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG% && sleep 3 && docker ps | grep %IMAGE_NAME%'"
                     '''
                 }
             }
