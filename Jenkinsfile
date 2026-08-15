@@ -1,9 +1,9 @@
 pipeline {
     agent any
 
-environment {
+    environment {
         // Fetch secret from Jenkins credentials store using the ID 'MONGO_URI'
-        MONGO_URI = credentials('MONGO_URI') 
+        MONGO_URI      = credentials('MONGO_URI') 
         AWS_ACCOUNT_ID = '316412036553'
         AWS_REGION     = 'us-east-1'
         IMAGE_NAME     = 'student-registration'
@@ -12,20 +12,28 @@ environment {
 
         EC2_HOST       = '13.223.96.128' // or public IP
         EC2_USER       = 'ec2-user'
-        STAGE_NAME   = 'Unknown Stage'
+        FAILED_STAGE   = 'Unknown Stage'
     }
 
     stages {
         stage('Checkout') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Checkout' }
+                }
+            }
             steps {
-                env.STAGE_NAME = 'Checkout'
                 checkout scm
             }
         }
 
         stage('Install Dependencies') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Install Dependencies' }
+                }
+            }
             steps {
-                env.STAGE_NAME = 'Install Dependencies'
                 echo 'Installing dependencies...'
                 sh 'python -m venv venv'
                 sh 'source venv/Scripts/activate'
@@ -35,16 +43,24 @@ environment {
         }
 
         stage('Test') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Test' }
+                }
+            }
             steps {
-                env.STAGE_NAME = 'Test'
                 echo 'Running tests...'
                 sh 'pytest'
             }
         }
 
         stage('Build Docker Image') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Build Docker Image' }
+                }
+            }
             steps {
-                env.STAGE_NAME = 'Build Docker Image'
                 script {
                     echo "Building ${IMAGE_NAME}:${IMAGE_TAG}..."
                     sh "docker build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
@@ -53,10 +69,14 @@ environment {
                 }
             }
         }
-        stage('Authenticate & Push to ECR') {
 
+        stage('Authenticate & Push to ECR') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Authenticate & Push to ECR' }
+                }
+            }
             steps {
-                env.STAGE_NAME = 'Authenticate & Push to ECR'
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
                     credentialsId: 'ECR-Access-ID'
@@ -74,8 +94,12 @@ environment {
         }
 
         stage('Deploy to EC2 Instance') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Deploy to EC2 Instance' }
+                }
+            }
             steps {
-                env.STAGE_NAME = 'Deploy to EC2 Instance'
                 withCredentials([
                     file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH'),
                     aws(credentialsId: 'ECR-Access-ID', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'),
@@ -87,9 +111,14 @@ environment {
                 }
             }
         }
+
         stage('Validate Application Health') {
+            post {
+                failure {
+                    script { env.FAILED_STAGE = 'Validate Application Health' }
+                }
+            }
             steps {
-                env.STAGE_NAME = 'Validate Application Health'
                 powershell '''
                     Start-Sleep -Seconds 5
                     $url = "http://${env:EC2_HOST}:5000/health"
@@ -117,9 +146,9 @@ environment {
                 '''
             }
         }
-}
+    }
 
-post {
+    post {
         always {
             echo 'Pipeline execution completed'
         }
@@ -154,7 +183,7 @@ post {
                     <hr/>
                     <p><b>Failure Details:</b></p>
                     <ul>
-                        <li><b>Failed Stage:</b> <span style='color:red;'>${env.STAGE_NAME ? env.STAGE_NAME : 'Unknown Stage'}</span></li>
+                        <li><b>Failed Stage:</b> <span style='color:red;'>${env.FAILED_STAGE}</span></li>
                         <li><b>Commit SHA:</b> ${env.GIT_COMMIT ? env.GIT_COMMIT : 'N/A'}</li>
                         <li><b>Image Tag:</b> ${env.ECR_URL}/${env.IMAGE_NAME}:${env.IMAGE_TAG}</li>
                     </ul>
