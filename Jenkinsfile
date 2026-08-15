@@ -62,6 +62,34 @@ environment {
                         }
                     }
                 }
+
+        stage('Deploy to EC2 via SSH') {
+            steps {
+                sshagent(['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                            # 1. Login to ECR
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_URL}
+
+                            # 2. Stop and remove existing container (if running)
+                            docker stop ${IMAGE_NAME} || true
+                            docker rm ${IMAGE_NAME} || true
+
+                            # 3. Pull latest image
+                            docker pull ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}
+
+                            # 4. Run new container
+                            docker run -d \\
+                              --name ${IMAGE_NAME} \\
+                              --restart unless-stopped \\
+                              -p 80:80 \\
+                              ${ECR_URL}/${IMAGE_NAME}:${IMAGE_TAG}
+                            docker image prune -f
+                        '
+                    """
+                }
+            }
+        }
     }
 
     post {
