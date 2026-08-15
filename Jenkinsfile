@@ -72,9 +72,9 @@ environment {
                 file(credentialsId: 'ec2-ssh-key-file', variable: 'KEY_PATH'),
                 aws(credentialsId: 'ECR-Access-ID', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')
             ]) {
-                bat """
-                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'export AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID% && export AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY% && export AWS_DEFAULT_REGION=%AWS_REGION% && aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_URL% && docker stop %IMAGE_NAME% || true && docker rm %IMAGE_NAME% || true && docker pull %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG% && docker run -d --name %IMAGE_NAME% --restart unless-stopped -p 5000:5000 -e MONGO_URI=\\\"${env.MONGO_URI}\\\" %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG%'"
-                """
+                bat '''
+                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "ssh -i '%KEY_PATH%' -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% 'export AWS_ACCESS_KEY_ID=%AWS_ACCESS_KEY_ID% && export AWS_SECRET_ACCESS_KEY=%AWS_SECRET_ACCESS_KEY% && export AWS_DEFAULT_REGION=%AWS_REGION% && aws ecr get-login-password --region %AWS_REGION% | docker login --username AWS --password-stdin %ECR_URL% && docker stop %IMAGE_NAME% || true && docker rm %IMAGE_NAME% || true && docker pull %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG% && docker run -d --name %IMAGE_NAME% --restart unless-stopped -p 5000:5000 -e MONGO_URI=\"%MONGO_URI%\" %ECR_URL%/%IMAGE_NAME%:%IMAGE_TAG%'"
+                '''
             }
         }
     }
