@@ -3,6 +3,7 @@ set -e
 
 IMAGE_TAG=$1
 MONGO_URI_VAL=$2
+MONGO_URI_VAL="$MONGO_URI_VAL?retryWrites=true&w=majority"  # Remove quotes if present
 
 AWS_REGION="us-east-1"
 ECR_URL="316412036553.dkr.ecr.us-east-1.amazonaws.com"
