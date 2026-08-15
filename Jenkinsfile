@@ -81,23 +81,34 @@ environment {
         }
         stage('Validate Application Health') {
             steps {
-                bat '''
-                    "C:\\Program Files\\Git\\bin\\bash.exe" -c "
-                        echo ===> Waiting 5 seconds...
-                        sleep 5
-                        HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://%EC2_HOST%:5000/health)
-                        
-                        if [ \"$HTTP_STATUS\" -eq 200 ]; then
-                            echo ===> SUCCESS
-                            exit 0
-                        else
-                            echo ===> FAILED
-                            exit 1
-                        fi
-                    "
+                powershell '''
+                    Start-Sleep -Seconds 5
+                    $url = "http://${env:EC2_HOST}:5000/health"
+                    Write-Host "===> Checking health endpoint: $url"
+
+                    try {
+                        $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 10
+                        $statusCode = $response.StatusCode
+                    } catch {
+                        if ($_.Exception.Response) {
+                            $statusCode = [int]$_.Exception.Response.StatusCode
+                        } else {
+                            $statusCode = 0
+                        }
+                    }
+
+                    Write-Host "===> Received HTTP Status Code: $statusCode"
+
+                    if ($statusCode -eq 200) {
+                        Write-Host "===> [SUCCESS] Health check passed! HTTP 200 OK."
+                    } else {
+                        Write-Error "===> [ERROR] Health check failed with status code: $statusCode"
+                        exit 1
+                    }
                 '''
             }
         }
+}
 }
 
     post {
